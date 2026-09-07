@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f3f1ea">
   <title>APP-001 — Продуктовая корзина</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./cloud-backend.js?v=20260907-bootfix"></script>
   <style>
     html,body{margin:0;min-height:100%;background:#f3f1ea;font-family:Arial,sans-serif}
-    #bootScreen{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:#f3f1ea;color:#555850}
-    #bootScreen.error{color:#9f3030;padding:30px;text-align:center}
+    #bootScreen{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:#f3f1ea;color:#555850;padding:30px;text-align:center;box-sizing:border-box}
+    #bootScreen.error{color:#9f3030}
     .auth-gate{position:fixed;inset:0;background:rgba(243,241,234,.97);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}
     .auth-gate.open{display:flex}.auth-card{width:min(420px,100%);background:#fffdfa;border:1px solid #c9c3b6;border-radius:14px;padding:24px;box-shadow:0 18px 48px rgba(0,0,0,.08);box-sizing:border-box}
     .auth-card h2{margin:0 0 6px}.auth-card p{margin:0 0 18px;color:#73756d;font-size:13px}.auth-card .field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
@@ -39,11 +37,29 @@
   <script>
   (async()=>{
     const boot=document.getElementById('bootScreen');
+    const VERSION='20260907-bootfix2';
+    const loadScript=src=>new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src=src;
+      s.onload=resolve;
+      s.onerror=()=>reject(new Error('Не загрузился скрипт: '+src));
+      document.head.appendChild(s);
+    });
     try{
+      try{
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+      }catch(firstError){
+        console.warn(firstError);
+        await loadScript('https://unpkg.com/@supabase/supabase-js@2');
+      }
+      if(!window.supabase?.createClient)throw new Error('Библиотека Supabase не загрузилась');
+      await loadScript('./cloud-backend.js?v='+VERSION);
+      if(typeof window.bootCloud!=='function' || typeof window.cloudApi!=='function')throw new Error('Cloud backend не инициализировался');
+
       const base='./src/';
       const names=['Style01.html','Body01.html','Script01.html','Script02.html','Script03.html','Script04.html','Script05.html','Script06.html','Script07.html','Script08.html'];
       const files=await Promise.all(names.map(async name=>{
-        const r=await fetch(base+name+'?v=20260907-bootfix',{cache:'no-cache'});
+        const r=await fetch(base+name+'?v='+VERSION,{cache:'no-store'});
         if(!r.ok)throw new Error(name+': HTTP '+r.status);
         return r.text();
       }));
@@ -54,14 +70,23 @@
       let js=scripts.join('\n');
       const oldApi="function api(name,...args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err&&err.message?err.message:String(err))))[name](...args));}";
       if(!js.includes(oldApi))throw new Error('Не найден legacy API adapter');
-      if(!js.includes("document.addEventListener('DOMContentLoaded',()=>{"))throw new Error('Не найден блок запуска приложения');
       js=js.replace(oldApi,"function api(name,...args){return cloudApi(name,args);}");
-      js=js.replace("document.addEventListener('DOMContentLoaded',()=>{","(()=>{");
-      js=js.replace("    loadState();\n  });","    bootCloud();\n  })();");
-      const script=document.createElement('script');script.textContent=js;document.body.appendChild(script);
+
+      const startup=/document\.addEventListener\('DOMContentLoaded',\(\)=>\{([\s\S]*?)\r?\n\s*loadState\(\);\r?\n\s*\}\);/;
+      const match=js.match(startup);
+      if(!match)throw new Error('Не найден блок запуска приложения');
+      js=js.replace(startup,`function initApp(){${match[1]}\n    bootCloud();\n  }`);
+
+      const script=document.createElement('script');
+      script.textContent=js;
+      document.body.appendChild(script);
+      if(typeof window.initApp!=='function')throw new Error('Основной интерфейс не инициализировался');
+      window.initApp();
       boot.remove();
     }catch(err){
-      console.error(err);boot.classList.add('error');boot.textContent='Не удалось загрузить приложение: '+(err?.message||err);
+      console.error(err);
+      boot.classList.add('error');
+      boot.textContent='Ошибка запуска APP-001: '+(err?.message||err);
     }
   })();
   </script>
