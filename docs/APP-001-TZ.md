@@ -1,6 +1,6 @@
 # APP-001 — Food basket — актуальный контракт v1.0
 
-> Этот файл — рабочая спецификация для GitHub-разработки. Полный исторический журнал ТЗ остаётся в исходном Google Doc. При разработке ориентироваться на этот актуальный контракт и код `main`.
+> Этот файл — каноническая рабочая спецификация APP-001 после перехода на GitHub-first разработку. При разработке ориентироваться на этот файл и код `main`. Google Drive используется как независимый BACKUP SAFE.
 
 ## Назначение
 
@@ -10,12 +10,20 @@
 
 `что есть дома → проверка остатков → сформировать корзину → выбрать магазин → цены/количество → собрать товары → завершить покупку → история`
 
-## Runtime и данные
+## Runtime, запуск и данные
 
-- Runtime/UI: Google Apps Script Web App.
-- Backend данных: Google Sheets.
-- GitHub — канонический источник исходного кода.
-- `main` — код, предназначенный для развёртывания.
+- Пользовательская точка запуска: **GitHub Pages**.
+- Целевой URL: `https://setjip-spec.github.io/APP-001-Food-basket/`.
+- GitHub Pages в v1.0 работает как полноэкранный launcher рабочего Apps Script Web App.
+- Backend/runtime: **Google Apps Script Web App**.
+- Backend данных: **Google Sheets**.
+- GitHub — канонический источник ТЗ и исходного кода.
+- `main` — версия, предназначенная для публикации/синхронизации runtime.
+- Google Drive `03 MINI APPS — BACKUP SAFE` — аварийный резерв, а не рабочее место разработки.
+
+Архитектура v1.0:
+
+`GitHub main → GitHub Pages → Apps Script Web App → Google Sheets DATA`
 
 ## Продукты
 
@@ -169,13 +177,41 @@
 
 ## GitHub workflow
 
-- Канон кода: `main` в `setjip-spec/APP-001-Food-basket`.
-- Сервер: `src/Code.gs`.
-- UI: `src/Index.html`.
+- Репозиторий: `setjip-spec/APP-001-Food-basket`.
+- Канон: `main`.
+- Apps Script backend разделён на `src/01_Server.gs` … `src/09_Server.gs`.
+- Apps Script UI разделён на `src/Index.html`, `Body*.html`, `Style*.html`, `Script*.html`.
+- Корневой `index.html` — GitHub Pages launcher.
+- `.nojekyll` — прямой static publish Pages.
 - Значимые изменения: ветка → проверка → pull request → `main`.
-- Google Docs-копии исходников считаются legacy-снимками, а не рабочим источником истины.
-- Google Sheets остаётся канонической базой пользовательских данных.
-- Google Apps Script остаётся runtime и deployment target.
+- Правка, сделанная только в Apps Script Editor и не возвращённая в GitHub, считается незавершённой.
+
+### Первичная настройка GitHub Pages
+
+Один раз:
+
+`Repository → Settings → Pages → Deploy from a branch → main → /(root) → Save`.
+
+После публикации основной пользовательский URL должен быть:
+
+`https://setjip-spec.github.io/APP-001-Food-basket/`
+
+### Backend sync
+
+До настройки автоматической доставки backend изменения из GitHub требуется синхронизировать с существующим Apps Script-проектом отдельно. Целевое состояние — `clasp`/GitHub Actions, чтобы backend также обновлялся из GitHub без ручного копирования.
+
+## Google BACKUP SAFE
+
+Для milestone/stable версии создаётся независимый Google Drive snapshot.
+
+Минимум snapshot:
+
+- копия Google Sheets DATA;
+- копия ТЗ;
+- резерв исходников/ключевых исходников;
+- BACKUP MANIFEST с GitHub URL, live URL, версией и датой.
+
+Порядок восстановления: сначала Git history/revert, затем Google BACKUP SAFE.
 
 ## Критерий рабочей v1.0
 
