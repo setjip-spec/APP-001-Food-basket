@@ -1,0 +1,48 @@
+c(s.name)}</option>`).join('')}
+  function resetBasketDraft(resetCashback=true){
+    basketDirty=false;
+    basketDraftStoreId=state?.basketStoreId||'';
+    if(resetCashback){
+      basketDraftCashbackPercent=0;
+      basketDraftCashbackLimit=0;
+    }
+  }
+
+  function draftStore(){return (state?.stores||[]).find(s=>s.storeId===basketDraftStoreId)||null;}
+  function draftBasketTotal(){return Math.round(((state?.basket||[]).reduce((sum,i)=>sum+rawNumber(i.qty)*rawNumber(i.unitPrice),0)+Number.EPSILON)*100)/100;}
+  function draftCashback(total){const pct=Math.min(100,Math.max(0,rawNumber(basketDraftCashbackPercent)));const limit=Math.max(0,rawNumber(basketDraftCashbackLimit));const value=Math.max(0,rawNumber(total))*pct/100;return Math.round(((limit>0?Math.min(value,limit):value)+Number.EPSILON)*100)/100;}
+  function basketDraftSummary(){const total=draftBasketTotal();const cashback=draftCashback(total);return {total,cashback,effective:Math.round((total-cashback+Number.EPSILON)*100)/100};}
+  function markBasketDirty(){basketDirty=true;refreshBasketDraftSummary();}
+  function refreshBasketDraftSummary(){
+    const s=basketDraftSummary();
+    const totalEl=document.getElementById('basketDraftTotal');
+    const cbEl=document.getElementById('basketDraftCashback');
+    const effEl=document.getElementById('basketDraftEffective');
+    if(totalEl)totalEl.textContent=money(s.total);if(cbEl)cbEl.textContent=money(s.cashback);if(effEl)effEl.textContent=money(s.effective);
+    const saveBtn=document.getElementById('saveBasketButton');const saveState=document.getElementById('basketSaveState');
+    if(saveBtn)saveBtn.disabled=!basketDirty;
+    if(saveState){saveState.textContent=basketDirty?'Есть несохранённые изменения':'Сохранено';saveState.classList.toggle('dirty',basketDirty);}
+    const purchaseBtn=document.getElementById('purchaseButton');if(purchaseBtn)purchaseBtn.disabled=!(state?.basket||[]).length;
+    const info=document.getElementById('basketCashbackInfo');
+    if(info){const store=draftStore();info.innerHTML=store?`<span class="row-sub">${esc(store.name)} · кэшбэк ${money(s.cashback)} · фиксируется при покупке</span>`:'<span class="row-sub">Выберите магазин. Кэшбэк и лимит фиксируются при покупке.</span>';}
+    renderBasketSummary();renderStats();
+  }
+
+  function renderBasketStore(){const el=document.getElementById('basketStoreSelect');if(el)el.innerHTML=storeOptions(basketDraftStoreId||'');const pct=document.getElementById('basketCashbackPercent');if(pct)pct.value=String(basketDraftCashbackPercent||0);const limit=document.getElementById('basketCashbackLimit');if(limit)limit.value=String(basketDraftCashbackLimit||0);refreshBasketDraftSummary();}
+  function changeBasketCashbackDraft(){basketDraftCashbackPercent=Math.min(100,Math.max(0,rawNumber(document.getElementById('basketCashbackPercent')?.value)));basketDraftCashbackLimit=Math.max(0,rawNumber(document.getElementById('basketCashbackLimit')?.value));refreshBasketDraftSummary();}
+
+  function changeBasketStoreDraft(storeId){basketDraftStoreId=storeId||'';const store=draftStore();(state.basket||[]).forEach(i=>{i.storeId=store?store.storeId:'';i.storeName=store?store.name:'';});markBasketDirty();renderBasketSummary();}
+  function collectBasketDraftItems(){
+    (state.basket||[]).forEach(i=>{const q=document.getElementById('qty_'+i.basketItemId);const p=document.getElementById('price_'+i.basketItemId);if(q)i.qty=qnum(q.value,i.unit);if(p)i.unitPrice=Math.max(0,rawNumber(p.value));i.sum=Math.round((rawNumber(i.qty)*rawNumber(i.unitPrice)+Number.EPSILON)*100)/100;});
+    return [...(state.basket||[]),...(state.basketRemoved||[])].map(i=>({basketItemId:i.basketItemId||'',productId:i.productId||'',qty:i.qty,price:i.unitPrice,status:i.status||'активно',source:i.source||'вручную'}));
+  }
+
+  async function saveBasketDraftChanges(){
+    if(!basketDirty){toast('Корзина уже сохранена');return}
+    const items=collectBasketDraftItems();setLoading(true);
+    try{state=await api('saveBasketDraft',{storeId:basketDraftStoreId,items});resetBasketDraft(false);renderAll();showPage('basket');toast('Корзина сохранена. Кэшбэк и лимит будут зафиксированы при покупке.');}catch(e){toast(e.message,true)}finally{setLoading(false)}
+  }
+
+  function isBasketCollected(item){return String(item?.status||'').trim().toLowerCase()==='собрано'}
+  function setBasketSort(mode){basketSortMode=mode==='category'?'category':'name';renderBasket()}
+  function basketRowHtml(i,groupClass=''){const collected=isBasketCollected(i);return `<tr class="${groupClass} ${collected?'basket-collected':''}"><td class="basket-check"><input type="checkbox" ${collected?'checked':''} aria-label="Собрано: ${esc(i.name)}" onchange="toggleBasketCollected('${i.basketItemId}',this.checked)"></td><td><strong>${esc(i.name)}</strong><div class="row-sub">${esc(i.unit)} · ${esc(i.source||'')}</div></td><td class="${Number(i.currentStock)<Number(i.weeklyTarget)?'stock-low':''}">${qtext(i.currentStock,i.unit)}</td><td>${qtext(i.weeklyTarget,i.unit)}</td><td><div class="recommend-note">(нужно ${qtext(i.recommendedQty,i.unit)})</div><div class="steppe
