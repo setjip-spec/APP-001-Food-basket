@@ -1,0 +1,66 @@
+
+  let state=null;
+  let productSortMode='category';
+  let basketSortMode='name';
+  let basketRemovedOpen=true;
+  let basketAvailableOpen=false;
+  let basketDirty=false;
+  let basketDraftStoreId='';
+  let basketDraftCashbackPercent=0;
+  let basketDraftCashbackLimit=0;
+  const titles={home:'Главная',stock:'Что дома',basket:'Корзина',products:'Продукты',history:'История',settings:'Настройки'};
+
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('.nav-btn[data-page]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+    document.getElementById('quickAddForm').addEventListener('submit',submitQuickAdd);
+    document.getElementById('productForm').addEventListener('submit',submitProduct);
+    document.getElementById('storeForm').addEventListener('submit',submitStore);
+    document.getElementById('cashbackForm').addEventListener('submit',submitCashback);
+    document.getElementById('purchaseForm').addEventListener('submit',submitPurchase);
+    document.getElementById('settingsForm').addEventListener('submit',submitSettings);
+    window.addEventListener('beforeunload',e=>{if(!basketDirty)return;e.preventDefault();e.returnValue='';});
+    loadState();
+  });
+
+
+  function api(name,...args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err&&err.message?err.message:String(err))))[name](...args));}
+  async function loadState(){setLoading(true);try{state=await api('getAppState');resetBasketDraft();renderAll();}catch(e){toast(e.message,true)}finally{setLoading(false)}}
+  function setLoading(v){document.getElementById('loader').classList.toggle('show',v)}
+  function toast(msg,isError=false){const el=document.getElementById('toast');el.textContent=msg;el.style.background=isError?'#8f3232':'#24251f';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600)}
+  function showPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+page).classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));document.getElementById('pageTitle').textContent=titles[page]||'';if(page==='settings')renderSettings()}
+
+
+  const money=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number(v)||0)+' ₽';
+  const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const dateText=v=>v?new Date(v+'T00:00:00').toLocaleDateString('ru-RU'):'—';
+  const statusClass=s=>s==='закончилось'?'bad':s==='заканчивается'?'warn':'ok';
+  const rowClass=s=>s==='закончилось'?'row-ended':s==='заканчивается'?'row-ending':'';
+  const kgStep=()=>Number(state?.settings?.kgStep)||0.1;
+  const unitStep=u=>u==='кг'?kgStep():1;
+  const rawNumber=v=>Number(String(v??'').replace(',','.'))||0;
+  const qnum=(v,u)=>u==='кг'?Math.round((Math.max(0,rawNumber(v))+Number.EPSILON)*10)/10:Math.round(Math.max(0,rawNumber(v)));
+  const qinput=(v,u)=>u==='кг'?String(Math.round((Math.max(0,rawNumber(v))+Number.EPSILON)*1000)/1000):String(Math.round(Math.max(0,rawNumber(v))));
+  const qtext=(v,u)=>u==='кг'?new Intl.NumberFormat('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:3}).format(rawNumber(v)):String(Math.round(rawNumber(v)));
+  const qlabel=(v,u)=>qtext(v,u)+' '+(u||'шт.');
+
+
+  function renderAll(){
+    document.getElementById('appVersion').textContent=state.app?.version||'1.0';
+    renderStats();renderSoon();renderBasketSummary();renderWeekCard();renderStock();renderBasket();renderProducts();renderHistory();fillProductNames();fillCategorySelects();renderBasketStore();renderSettings();
+  }
+
+
+  function renderStats(){
+    const s=state.summary;const shortage=s.shortageProducts>0;
+    const d=basketDraftSummary();const items=[['Нужно докупить',s.shortageProducts,'товаров',shortage],['В корзине',(state.basket||[]).length,'позиций',false],['Стоимость',money(d.total),'',false],['Кэшбэк',money(d.cashback),'',false]];
+    document.getElementById('stats').innerHTML=items.map(x=>`<div class="stat ${x[3]?'alert':''}"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div>${x[2]?`<div class="stat-sub">${x[2]}</div>`:''}</div>`).join('');
+  }
+  function formatMixedQty(v){return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(Number(v)||0)}
+
+
+  function renderSoon(){
+    const list=state.soon||[];document.getElementById('needCard').classList.toggle('alert',list.length>0);
+    document.getElementById('soonList').innerHTML=list.length?list.slice(0,15).map(p=>`<div class="need-row"><div class="need-name"><div class="row-title">${esc(p.name)}</div><div class="row-sub">${esc(p.category||'Без категории')} · ${esc(p.unit)}</div></div><div class="metric-cell"><div class="metric-label">Осталось</div><div class="metric-value">${qtext(p.currentStock,p.unit)}</div></div><div class="metric-cell"><div class="metric-label">Докупить</div><div class="metric-value red">${qtext(p.recommendedQty,p.unit)}</div></div></div>`).join(''):'<div class="empty">Докупить ничего не нужно</div>';
+  }
+  function renderBasketSummary(){const s=basketDraftSummary();document.getElementById('basketSummary').innerHTML=`<div class="money-box"><div class="money-line"><span>Сумма товаров</span><strong>${money(s.total)}</strong></div><div class="money-line"><span>Ожидаемый кэшбэк</span><strong class="green">${money(s.cashback)}</strong></div><div 
