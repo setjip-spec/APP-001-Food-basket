@@ -1,0 +1,60 @@
+  const oldIndex=state.basketRemoved.findIndex(x=>x.productId===item.productId);
+    if(oldIndex>=0)state.basketRemoved.splice(oldIndex,1);
+    state.basketRemoved.push(item);
+    markBasketDirty();
+    renderBasket();
+    renderBasketSummary();
+  }
+  function restoreRemovedBasket(id,checkbox){
+    const list=state.basketRemoved||[];
+    const index=list.findIndex(x=>x.basketItemId===id);if(index<0)return;
+    const item=list.splice(index,1)[0];
+    item.status='активно';
+    item.source='вручную';
+    const store=draftStore();
+    item.storeId=store?store.storeId:'';
+    item.storeName=store?store.name:'';
+    state.basket=state.basket||[];
+    state.basket.push(item);
+    markBasketDirty();
+    renderBasket();
+    renderBasketSummary();
+  }
+  function localAddExistingProduct(productId,qtyOverride,priceOverride){
+    const existing=(state.basket||[]).find(x=>x.productId===productId);
+    if(existing){
+      if(qtyOverride!==''&&qtyOverride!=null)existing.qty=qnum(qtyOverride,existing.unit);
+      if(priceOverride!==''&&priceOverride!=null)existing.unitPrice=Math.max(0,rawNumber(priceOverride));
+      existing.sum=Math.round((rawNumber(existing.qty)*rawNumber(existing.unitPrice)+Number.EPSILON)*100)/100;
+      existing.status='активно';
+      markBasketDirty();renderBasket();renderBasketSummary();return existing;
+    }
+    const removed=(state.basketRemoved||[]).find(x=>x.productId===productId);
+    if(removed){
+      restoreRemovedBasket(removed.basketItemId);
+      const restored=(state.basket||[]).find(x=>x.productId===productId);
+      if(restored&&qtyOverride!==''&&qtyOverride!=null)restored.qty=qnum(qtyOverride,restored.unit);
+      if(restored&&priceOverride!==''&&priceOverride!=null)restored.unitPrice=Math.max(0,rawNumber(priceOverride));
+      if(restored)restored.sum=Math.round((rawNumber(restored.qty)*rawNumber(restored.unitPrice)+Number.EPSILON)*100)/100;
+      renderBasket();renderBasketSummary();return restored;
+    }
+    const p=(state.products||[]).find(x=>x.productId===productId);if(!p)return null;
+    const qty=qtyOverride!==''&&qtyOverride!=null?qnum(qtyOverride,p.unit):(rawNumber(p.recommendedQty)>0?qnum(p.recommendedQty,p.unit):unitStep(p.unit));
+    const price=priceOverride!==''&&priceOverride!=null?Math.max(0,rawNumber(priceOverride)):Math.max(0,rawNumber(p.price));
+    const store=draftStore();
+    const item={basketItemId:'TMP-'+p.productId,productId:p.productId,name:p.name,qty,storeId:store?store.storeId:'',storeName:store?store.name:'',unitPrice:price,sum:Math.round((qty*price+Number.EPSILON)*100)/100,source:'вручную',status:'активно',weeklyTarget:p.weeklyTarget,currentStock:p.currentStock,recommendedQty:p.recommendedQty,unit:p.unit,category:p.category||''};
+    state.basket=state.basket||[];state.basket.push(item);markBasketDirty();renderBasket();renderBasketSummary();return item;
+  }
+  function addExistingBasketProduct(productId,checkbox){localAddExistingProduct(productId);}
+
+  function categoryOptions(selected){const first=`<option value="" ${selected?'':'selected'}>Без категории</option>`;return first+(state.categories||[]).map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${esc(c)}</option>`).join('')}
+  function productDataRow(p,groupClass=''){return `<tr class="${groupClass}"><td><strong>${esc(p.name)}</strong></td><td><select class="edit-select" id="cat_${p.productId}">${categoryOptions(p.category||'')}</select></td><td>${esc(p.unit)}</td><td><input class="edit-input" id="days_${p.productId}" type="number" min="0" step="1" value="${Number(p.daysSupply)||0}"></td><td><input class="edit-input" id="week_${p.productId}" type="number" min="0" step="${unitStep(p.unit)}" value="${qinput(p.weeklyTarget,p.unit)}"></td><td>${qtext(p.currentStock,p.unit)}</td><td>${money(p.price)}</td><td><div class="toolbar"><button class="btn small primary" onclick="saveProductInline('${p.productId}')">Сохранить</button><button class="btn small" onclick="editProduct('${p.productId}')">Карточка</button></div></td></tr>`}
+  function setProductSort(mode){productSortMode=mode||'category';renderProducts()}
+  function sortProductsForView(items,mode){const arr=[...items];const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ru');if(mode==='name') return arr.sort(byName);if(mode==='stockAsc') return arr.sort((a,b)=>rawNumber(a.currentStock)-rawNumber(b.currentStock)||byName(a,b));if(mode==='stockDesc') return arr.sort((a,b)=>rawNumber(b.currentStock)-rawNumber(a.currentStock)||byName(a,b));return arr;}
+  function renderProducts(){
+    const root=document.getElementById('productGroups');
+    const sortEl=document.getElementById('productSortSelect');if(sortEl)sortEl.value=productSortMode;
+    if(!state.products.length){root.innerHTML='<div class="card"><div class="empty">Добавьте первый продукт</div></div>';return}
+    let body='';
+    if(productSortMode==='category'){const groups=categoryGroups(state.products);body=groups.map((g,i)=>{const key='products_'+i;return tableCategoryRow(key,g.name,g.items.length,8)+g.items.map(p=>productDataRow(p,'group-'+key)).join('')}).join('');}else{body=sortProductsForView(state.products,productSortMode).map(p=>productDataRow(p)).join('');}
+    root.innerHTML=`<div class="table-wrap"><t
