@@ -37,7 +37,7 @@
   <script>
   (async()=>{
     const boot=document.getElementById('bootScreen');
-    const VERSION='20260907-bootfix2';
+    const VERSION='20260907-bootfix3';
     const loadScript=src=>new Promise((resolve,reject)=>{
       const s=document.createElement('script');
       s.src=src;
@@ -67,7 +67,10 @@
       const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
       document.getElementById('appMount').innerHTML=body;
 
-      let js=scripts.join('\n');
+      // ВАЖНО: Script01..08 — это части одного исходного JS и некоторые границы
+      // проходят прямо внутри идентификаторов/шаблонных строк. Нельзя вставлять между
+      // частями даже перевод строки — исходник должен быть восстановлен байт-в-байт.
+      let js=scripts.join('');
       const oldApi="function api(name,...args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err&&err.message?err.message:String(err))))[name](...args));}";
       if(!js.includes(oldApi))throw new Error('Не найден legacy API adapter');
       js=js.replace(oldApi,"function api(name,...args){return cloudApi(name,args);}");
@@ -76,6 +79,9 @@
       const match=js.match(startup);
       if(!match)throw new Error('Не найден блок запуска приложения');
       js=js.replace(startup,`function initApp(){${match[1]}\n    bootCloud();\n  }`);
+
+      // Сначала отдельно проверяем синтаксис, чтобы ошибка не превращалась в «мёртвую» страницу.
+      try{new Function(js)}catch(parseError){throw new Error('Ошибка JavaScript интерфейса: '+parseError.message)}
 
       const script=document.createElement('script');
       script.textContent=js;
