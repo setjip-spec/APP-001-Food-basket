@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>–ü—Ä–æ–¥—É–∫—Ç–æ–≤–∞—è –∫–æ—Ä–∑–∏–Ω–∞</title>
+  <style>
+    :root{--bg:#f3f1ea;--panel:#fffdfa;--line:#d9d4c8;--line2:#c9c3b6;--text:#191a16;--muted:#73756d;--olive:#66701e;--olive-dark:#505817;--olive-soft:#ecefdc;--red:#b93434;--red-soft:#f8dedb;--red-strong:#ff665e;--amber:#b77516;--radius:12px}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}button,input,select,textarea{font:inherit}
+    .app{min-height:100vh;display:grid;grid-template-columns:230px 1fr}.sidebar{background:#faf8f2;border-right:1px solid var(--line);padding:22px 15px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+    .brand{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:700;margin:0 8px 26px}.brand-mark{width:38px;height:38px;border-radius:8px;background:var(--olive);color:#fff;display:grid;place-items:center}
+    .nav{display:flex;flex-direction:column;gap:5px}.nav-btn{border:0;background:transparent;text-align:left;padding:12px 13px;border-radius:9px;color:#4f5149;display:flex;gap:11px;align-items:center;cursor:pointer}.nav-btn:hover{background:#efede6}.nav-btn.active{background:#e8e7d8;color:var(--olive-dark);font-weight:700}.ico{width:21px;text-align:center}.sidebar-bottom{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
+    .main{padding:24px 28px 38px;min-width:0}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}.topbar h1{margin:0;font-size:28px}.top-actions{display:flex;gap:9px}
+    .btn{border:1px solid var(--line2);background:var(--panel);color:var(--text);padding:10px 14px;border-radius:9px;font-weight:650;cursor:pointer}.btn:hover{background:#f1efe8}.btn.primary{background:var(--olive);color:#fff;border-color:var(--olive)}.btn.primary:hover{background:var(--olive-dark)}.btn.small{padding:6px 9px;font-size:12px}.btn.danger{color:var(--red)}.btn:disabled{opacity:.48;cursor:not-allowed}.btn:disabled:hover{background:inherit}
+    .page{display:none}.page.active{display:block}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px;min-height:92px}.stat.alert{border-color:#e6aaaa;background:#fff8f7}.stat.alert .stat-value{color:var(--red)}.stat-label{font-size:12px;color:#55564f;margin-bottom:9px}.stat-value{font-size:23px;font-weight:780}.stat-sub{font-size:12px;color:var(--muted);margin-top:6px}
+    .dashboard{display:grid;grid-template-columns:1.4fr 1fr .85fr;gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);min-width:0}.card.need-card.alert{border-color:#e2a3a3}.card.need-card.alert .card-head h2{color:var(--red)}.card-head{padding:16px 16px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}.card-head h2{font-size:18px;margin:0}.panel-pad{padding:0 16px 16px}
+    .need-list{border-top:1px solid var(--line)}.need-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 96px;gap:8px;align-items:stretch;padding:9px 11px;border-bottom:1px solid var(--line)}.need-name{padding:7px 3px}.row-title{font-weight:700;font-size:14px}.row-sub{font-size:12px;color:var(--muted);margin-top:3px}.metric-cell{border:1px solid var(--line);background:#f6f4ed;border-radius:8px;padding:7px 8px}.metric-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}.metric-value{font-size:16px;font-weight:800;margin-top:3px}.metric-value.red{color:var(--red)}
+    .money-box{margin:0 14px 14px;border:1px solid var(--line);border-radius:10px;padding:13px}.money-line{display:flex;justify-content:space-between;padding:7px 0}.money-total{border-top:1px solid var(--line);margin-top:7px;padding-top:12px;font-size:21px;font-weight:800;text-align:right}.green{color:#5b7d35}.week-card{padding:17px}.week-big{font-size:22px;font-weight:800;margin:5px 0 10px}
+    .section-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}.section-bar h2{margin:0;font-size:21px}.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .table-wrap{overflow:auto;border:1px solid var(--line2);border-radius:10px;background:#e9e5dc}table{width:100%;border-collapse:separate;border-spacing:0;min-width:760px}th,td{text-align:left;padding:10px 11px;font-size:13px;vertical-align:middle}th{background:#e5e1d7;color:#555850;font-weight:750;border-bottom:1px solid var(--line2)}td{background:#fffdf9;border-bottom:1px solid #e8e3d9;border-right:1px solid #eee9df}th:not(:last-child){border-right:1px solid #d7d1c4}td:last-child,th:last-child{border-right:0}tr:nth-child(even):not(.row-ending):not(.row-ended) td{background:#f8f6f0}tr:last-child td{border-bottom:0}
+    tr.row-ending td{background:var(--red-soft)!important;border-color:#eebcb7}tr.row-ended td{background:var(--red-strong)!important;border-color:#e14c45;color:#3f0806}.stock-low{font-weight:800;color:var(--red)}.need{font-weight:800;color:var(--red)}
+    .status{padding:5px 8px;border-radius:7px;font-size:11px;font-weight:700;border:1px solid var(--line)}.status.ok{background:transparent;color:#65675f}.status.warn,.status.bad{background:#fff5f4;color:var(--red);border-color:#e8bcbc}
+    .qty-input,.price-input,.edit-input,.edit-select,.store-select{border:1px solid #cfc9bc;border-radius:7px;padding:7px 8px;background:#fff}.price-input{width:94px}.edit-input{width:78px}.edit-select{width:100%;min-width:0;max-width:none}.products-grid{min-width:1410px}.products-grid td:nth-child(2),.products-grid th:nth-child(2){padding-left:10px;padding-right:10px}.store-select{min-width:125px;max-width:165px}.basket-check{width:46px;text-align:center}.basket-check input{width:19px;height:19px;cursor:pointer;accent-color:var(--olive)}tr.basket-collected td{background:#e7f2dd!important;border-color:#c8dcb8!important;color:#384b2b}tr.basket-collected .row-sub{color:#6b7b61}.sort-control{display:flex;align-items:center;gap:8px}.sort-control label{font-size:12px;font-weight:700;color:#65665e}.sort-control select{min-width:245px;border:1px solid #cfc9bc;border-radius:8px;background:#fff;padding:9px 10px}
+    .cat-group{margin-bottom:11px;border:1px solid var(--line2;border-radius:LÿòX⁄Ÿ‹õ›[ôùò\äK\[ô[
+N€›ô\ôõ›ŒöY[üKòÿ]ZXY›⁄YåL	Nÿõ‹ô\éåÿòX⁄Ÿ‹õ›[ôàŸôMÿŒN‹Y[ôŒåL\L‹Ÿ\‹^Nôõ^⁄ù\›YûKX€€ù[ùú‹XŸKXô]ŸY[éÿ[Y€ãZ][\ŒòŸ[ù\é›^X[Y€éõYùŸõ€ù]ŸZY⁄éÿ›\ú€‹éú⁄[ù\éÿ€€‹éàÕMLY_Kòÿ]ZXYö›ô\ûÿòX⁄Ÿ‹õ›[ôàŸôLò_Kòÿ]X\úõ›ﬁŸ\‹^Nö[õ[ôKXõÿ⁄Œ›⁄YåN›ò[ú⁄][€éùò[úŸõ‹õHåM\ﬂKòÿ]Y‹õ›\ò€€\ŸYòÿ]X\úõ›ﬁ›ò[úŸõ‹õNúõ›]JNLY _Kòÿ]Y‹õ›\ò€€\ŸYòÿ]XõŸ^Ÿ\‹^Nõõ€ô_Kòÿ]X€›[ùŸõ€ù\⁄^ôNåLúÿ€€‹éùò\äK[]]Y
+NŸõ€ù]ŸZY⁄çåBàô‹öYLûŸ\‹^Nô‹öYŸ‹öY][\]KX€€[[úŒåYúàYúéŸÿ\åM\KõZ[öKXÿ\ôÿõ‹ô\éå\€€Yò\äK[[ôJNÿõ‹ô\ã\òY]\Œé\‹Y[ôŒåLú€X\ô⁄[ãXõ›€Né\ÿòX⁄Ÿ‹õ›[ôàŸôôüKô[\^‹Y[ôŒåçú›^X[Y€éòŸ[ù\éÿ€€‹éùò\äK[]]Y
+_Kö\›‹ûK[[€ù€X\ô⁄[ãXõ›€NåMúKö\›‹ûK[[€ùﬁŸõ€ù\⁄^ôNåM\€X\ô⁄[éåKö\›‹ûK\õ›ﬁŸ\‹^Nô‹öYŸ‹öY][\]KX€€[[úŒåL\YúàLÃLÃŸÿ\åL‹Y[ôŒåL\L‹ÿõ‹ô\ãXõ›€Nå\€€Yò\äK[[ôJNÿ[Y€ãZ][\ŒòŸ[ù\üBàú›\\ûŸ\‹^Nö[õ[ôKY‹öYŸ‹öY][\]KX€€[[úŒåÕNÕÿ[Y€ãZ],≤HÜ@LÉçt('–ù–æ–≤—ã–π —Ç–æ–≤–∞—Ä —Å–æ–∑–¥–∞–Ω –∏ –¥–æ–±–∞–≤–ª–µ–Ω');
+    }catch(err){toast(err.message,true)}
+    finally{setLoading(false)}
+  }
+
+
+  function openProductModal(){const f=document.getElementById('productForm');f.reset();f.productId.value='';document.getElementById('productCategory').innerHTML=categoryOptions('');document.getElementById('productUnit').value='—à—Ç.';document.getElementById('productWeekly').value='1';document.getElementById('productStock').value='0';refreshProductSteps();document.getElementById('productModalTitle').textContent='–ù–æ–≤—ã–π –ø—Ä–æ–¥—É–∫—Ç';openModal('productModal')}
+  function editProduct(id){const p=state.products.find(x=>x.productId===id);if(!p)return;const f=document.getElementById('productForm');f.reset();document.getElementById('productCategory').innerHTML=categoryOptions(p.category||'');f.elements.productId.value=p.productId;f.elements.name.value=p.name||'';f.elements.category.value=p.category||'';f.elements.pack.value=p.unit||'—à—Ç.';f.elements.daysSupply.value=p.daysSupply||'';f.elements.weeklyTarget.value=qinput(p.weeklyTarget,p.unit);f.elements.currentStock.value=qinput(p.currentStock,p.unit);f.elements.price.value=p.price||'';f.elements.note.value=p.note||'';refreshProductSteps();document.getElementById('productModalTitle').textContent='–ò–∑–º–µ–Ω–∏—Ç—å –ø—Ä–æ–¥—É–∫—Ç';openModal('productModal')}
+  function refreshProductSteps(){const unit=document.getElementById('productUnit').value,step=unitStep(unit);['productWeekly','productStock'].forEach(id=>{const el=document.getElementById(id);el.step=step;el.value=qinput(qnum(el.value,unit),unit)})}
+  function stepProductField(id,direction){const unit=document.getElementById('productUnit').value,el=document.getElementById(id),step=unitStep(unit);el.value=qinput(Math.max(0,rawNumber(el.value)+direction*step),unit)}
+  async function submitProduct(e){e.preventDefault();const payload=formObject(e.target),unit=payload.pack||'—à—Ç.';payload.weeklyTarget=qnum(payload.weeklyTarget,unit);payload.currentStock=qnum(payload.currentStock,unit);setLoading(true);try{state=await api('saveProduct',payload);closeModal('productModal');renderAll();showPage('products');toast('–ü—Ä–æ–¥—É–∫—Ç —Å–æ—Ö—Ä–∞–Ω—ë–Ω')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+
+
+  function renderSettings(){if(!state?.settings)return;const f=document.getElementById('settingsForm'),s=state.settings,c=s.stockColumns;f.elements.lowStockPercent.value=s.lowStockPercent;document.getElementById('lowStockValue').textContent=s.lowStockPercent+'%';f.elements.groupMode.value=s.stockGroupMode;f.elements.kgStep.value=String(s.kgStep||0.1);f.elements.showUnit.checked=!!c.unit;f.elements.showWeeklyTarget.checked=!!c.weeklyTarget;f.elements.showRemaining.checked=!!c.remaining;f.elements.showToBuy.checked=!!c.toBuy;f.elements.showLastPurchase.checked=!!c.lastPurchase;f.elements.showStatus.checked=!!c.status}
+  async function submitSettings(e){e.preventDefault();const f=e.target,payload={lowStockPercent:f.elements.lowStockPercent.value,groupMode:f.elements.groupMode.value,kgStep:f.elements.kgStep.value,showUnit:f.elements.showUnit.checked,showWeeklyTarget:f.elements.showWeeklyTarget.checked,showRemaining:f.elements.showRemaining.checked,showToBuy:f.elements.showToBuy.checked,showLastPurchase:f.elements.showLastPurchase.checked,showStatus:f.elements.showStatus.checked};setLoading(true);try{state=await api('saveSettings',payload);renderAll();showPage('settings');toast('–ù–∞—Å—Ç—Ä–æ–π–∫–∏ —Å–æ—Ö—Ä–∞–Ω–µ–Ω—ã')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+
+
+  function openStoreModal(){document.getElementById('storeForm').reset();openModal('storeModal')}
+  async function submitStore(e){e.preventDefault();setLoading(true);try{state=await api('saveStore',formObject(e.target));closeModal('storeModal');renderAll();toast('–ú–∞–≥–∞–∑–∏–Ω —Å–æ—Ö—Ä–∞–Ω—ë–Ω')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+  function openCashbackModal(){const f=document.getElementById('cashbackForm');f.reset();f.month.value=new Date().toISOString().slice(0,7);openModal('cashbackModal')}
+  async function submitCashback(e){e.preventDefault();setLoading(true);try{state=await api('saveCashback',formObject(e.target));closeModal('cashbackModal');renderAll();toast('–ö—ç—à–±—ç–∫ —Å–æ—Ö—Ä–∞–Ω—ë–Ω')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+
+
+  function openPurchaseModal(){
+    if(!(state.basket||[]).length){toast('–ö–æ—Ä–∑–∏–Ω–∞ –ø—É—Å—Ç–∞',true);return}
+    const s=basketDraftSummary();
+    const store=draftStore();
+    const storeId=basketDraftStoreId||'';
+    const key=storeId||'NO_STORE';
+    const name=store?store.name:'–ü–æ–∫—É–ø–∫–∞';
+    document.getElementById('purchaseFields').innerHTML=`<div class="mini-card"><strong>${esc(name)}</strong><div class="row-sub" style="margin-top:5px">–ö—ç—à–±—ç–∫ ${esc(basketDraftCashbackPercent)}% ¬∑ ${basketDraftCashbackLimit>0?'–ª–∏–º–∏—Ç '+money(basketDraftCashbackLimit):'–±–µ–∑ –ª–∏–º–∏—Ç–∞'} ¬∑ –∏–∑ –∫–æ—Ä–∑–∏–Ω—ã</div><div class="form-grid" style="margin-top:11px"><div class="field"><label>–§–∞–∫—Ç–∏—á–µ—Å–∫–∞—è —Å—É–º–º–∞, ‚ÇΩ</label><input type="number" step="0.01" name="actual_${esc(key)}" value="${Number(s.total)||0}" oninput="refreshPurchaseCashback()"></div><div class="field"><label>–°–∫–∏–¥–∫–∞, ‚ÇΩ</label><input type="number" step="0.01" name="discount_${esc(key)}" value="0"></div><div class="field"><label>–ö—ç—à–±—ç–∫ –ø–æ –ø–æ–∫—É–ø–∫–µ</label><input id="purchaseCashbackPreview" value="${money(s.cashback)}" disabled></div><div class="field"><label>–ü–æ—Å–ª–µ –∫—ç—à–±—ç–∫–∞</label><input id="purchaseNetPreview" value="${money(s.effective)}" disabled></div></div></div>`;
+    openModal('purchaseModal');
+    refreshPurchaseCashback();
+  }
+
+
+
+
+  function refreshPurchaseCashback(){
+    const actual=document.querySelector('#purchaseFields input[name^="actual_"]');
+    const cashback=document.getElementById('purchaseCashbackPreview');
+    const net=document.getElementById('purchaseNetPreview');
+    if(!actual||!cashback||!net)return;
+    const total=Math.max(0,rawNumber(actual.value));
+    const value=draftCashback(total);
+    cashback.value=money(value);
+    net.value=money(Math.max(0,total-value));
+  }
+
+
+
+
+  async function submitPurchase(e){
+    e.preventDefault();
+    if(!(state.basket||[]).length){toast('–ö–æ—Ä–∑–∏–Ω–∞ –ø—É—Å—Ç–∞',true);return}
+    const fd=new FormData(e.target);
+    const key=basketDraftStoreId||'NO_STORE';
+    const actualsByStore={};
+    actualsByStore[key]={
+      actualTotal:fd.get('actual_'+key),
+      discount:fd.get('discount_'+key)
+    };
+    const request={
+      draft:{storeId:basketDraftStoreId,items:collectBasketDraftItems()},
+      cashbackPercent:basketDraftCashbackPercent,
+      cashbackLimit:basketDraftCashbackLimit,
+      actualsByStore
+    };
+    setLoading(true);
+    try{
+      state=await api('completePurchase',request);
+      basketDirty=false;
+      basketDraftCashbackPercent=0;
+      basketDraftCashbackLimit=0;
+      resetBasketDraft(true);
+      closeModal('purchaseModal');
+      renderAll();
+      showPage('history');
+      toast('–ü–æ–∫—É–ø–∫–∞ —Å–æ—Ö—Ä–∞–Ω–µ–Ω–∞');
+    }catch(err){toast(err.message,true)}
+    finally{setLoading(false)}
+  }
+
+
+
+
+  function openModal(id){document.getElementById(id).classList.add('open')}
+  function closeModal(id){document.getElementById(id).classList.remove('open')}
+  function formObject(form){return Object.fromEntries(new FormData(form).entries())}
+</script>
+</body>
+</html>
