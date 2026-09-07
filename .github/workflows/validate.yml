@@ -1,0 +1,36 @@
+name: Validate APP-001
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check Code.gs syntax
+        shell: bash
+        run: |
+          cp src/Code.gs /tmp/Code.js
+          node --check /tmp/Code.js
+
+      - name: Check inline JavaScript in Index.html
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('src/Index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+          if (!scripts.length) throw new Error('Inline <script> block not found in src/Index.html');
+          fs.writeFileSync('/tmp/index-inline.js', scripts.join('\n'));
+          NODE
+          node --check /tmp/index-inline.js
