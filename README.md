@@ -4,22 +4,70 @@
 
 ## Статус
 
-- Версия приложения: **v1.0**
-- GitHub: **основное рабочее место исходного кода APP-001**
-- Runtime: **Google Apps Script Web App**
-- Backend данных: **Google Sheets**
+- Версия: **v1.0**
+- Канонический код: **GitHub / main**
+- Пользовательский запуск: **GitHub Pages**
+- Backend/runtime: **Google Apps Script Web App**
+- DATA: **Google Sheets**
+- Аварийный резерв: **Google Drive / 03 MINI APPS — BACKUP SAFE**
 
-GitHub используется для истории изменений, веток, pull request и хранения актуального исходного кода. Google Apps Script остаётся средой выполнения, а Google Sheets — базой данных.
+## Запуск
+
+Целевая пользовательская ссылка:
+
+**https://setjip-spec.github.io/APP-001-Food-basket/**
+
+В текущей архитектуре GitHub Pages работает как постоянная точка входа и открывает рабочий Google Apps Script Web App в полноэкранном iframe.
+
+Схема:
+
+```text
+GitHub main
+   ↓
+GitHub Pages
+   ↓
+Google Apps Script Web App
+   ↓
+Google Sheets DATA
+```
+
+### Первичная настройка GitHub Pages — один раз
+
+1. Открыть репозиторий.
+2. `Settings` → `Pages`.
+3. `Build and deployment` → `Source` → **Deploy from a branch**.
+4. Branch → **main**.
+5. Folder → **/(root)**.
+6. `Save`.
+7. Подождать публикацию и открыть `Visit site`.
+
+В корне уже лежат `index.html` и `.nojekyll`, поэтому после включения Pages URL должен стать рабочим.
+
+## Как теперь разрабатывать
+
+1. Все изменения кода делаются в этом GitHub-репозитории.
+2. Актуальный код находится в `main`.
+3. Значимые изменения лучше делать отдельной веткой и через Pull Request.
+4. Если меняется только GitHub Pages launcher/static-часть — публикация Pages обновляется автоматически после `main`.
+5. Если меняется backend Apps Script — изменения сначала делаются в GitHub, затем синхронизируются с существующим Apps Script-проектом.
+6. После проверки milestone создаётся Google BACKUP SAFE snapshot.
+
+Нельзя считать правку завершённой, если она осталась только в Google Apps Script Editor и не попала обратно в GitHub.
 
 ## Структура
 
 ```text
 APP-001-Food-basket/
+├─ index.html                 # GitHub Pages launcher
+├─ .nojekyll                  # direct static publishing
 ├─ src/
-│  ├─ Code.gs
-│  └─ Index.html
+│  ├─ 01_Server.gs ...        # Apps Script backend, модульно
+│  ├─ Index.html              # Apps Script HTML entry
+│  ├─ Body*.html
+│  ├─ Style*.html
+│  └─ Script*.html
 ├─ docs/
-│  └─ APP-001-TZ.md
+│  └─ APP-001-TZ.md           # актуальное ТЗ
 ├─ .github/workflows/
 │  └─ validate.yml
 ├─ appsscript.json
@@ -27,24 +75,19 @@ APP-001-Food-basket/
 └─ README.md
 ```
 
-## Архитектура
+## Google BACKUP SAFE
 
-```text
-GitHub (канонический код)
-        ↓
-Google Apps Script Web App
-        ↓
-Google Sheets DATA
-```
+Google Drive теперь не является местом ежедневной разработки. Он используется как независимый аварийный резерв.
 
-## Правило разработки
+Для стабильных версий сохраняются:
 
-1. Все новые изменения исходников сначала делаются в GitHub.
-2. Значимые изменения — отдельной веткой и pull request.
-3. После проверки изменения попадают в `main`.
-4. `main` считается актуальным кодом для развёртывания в Apps Script.
-5. Google Docs-копии кода больше не являются основным источником истины.
+- копия DATA;
+- копия ТЗ;
+- резерв ключевых исходников / snapshot;
+- BACKUP MANIFEST с версией, датой, GitHub URL и инструкцией восстановления.
 
-## Данные
+Порядок восстановления: сначала Git history/revert, затем Google BACKUP SAFE.
 
-Пользовательские данные и история покупок остаются в Google Sheets. В GitHub хранятся код и документация приложения.
+## Важно про Apps Script
+
+Сейчас GitHub Pages даёт удобную пользовательскую ссылку, но backend всё ещё выполняется в Google Apps Script. Чтобы будущие изменения backend автоматически попадали в Google без ручного копирования, следующим инфраструктурным шагом будет привязка существующего Apps Script проекта через `clasp`/GitHub Actions.
