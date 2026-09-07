@@ -1,0 +1,26 @@
+r"><button type="button" onclick="stepBasket('${i.basketItemId}',-1)">−</button><input id="qty_${i.basketItemId}" value="${qinput(i.qty,i.unit)}" readonly><button type="button" onclick="stepBasket('${i.basketItemId}',1)">+</button></div></td><td><input id="price_${i.basketItemId}" class="price-input" type="number" min="0" step="0.01" value="${Number(i.unitPrice)||0}" oninput="updateBasketDraftLine('${i.basketItemId}')"></td><td><strong id="sum_${i.basketItemId}">${money(i.sum)}</strong></td><td><button class="btn small danger" onclick="removeBasket('${i.basketItemId}')">Удалить</button></td></tr>`}
+  function basketSorted(items){const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ru');return [...items].sort(byName)}
+  function renderBasketRows(items,prefix,rowRenderer,colspan){if(basketSortMode==='category') return categoryGroups(items).map((g,i)=>{const key=prefix+'_'+i;return tableCategoryRow(key,g.name,g.items.length,colspan)+g.items.map(x=>rowRenderer(x,'group-'+key)).join('')}).join('');return basketSorted(items).map(x=>rowRenderer(x)).join('');}
+  function renderBasket(){
+    const body=document.getElementById('basketBody'),sortEl=document.getElementById('basketSortSelect');if(sortEl)sortEl.value=basketSortMode;
+    const pending=(state.basket||[]).filter(i=>!isBasketCollected(i));const collected=(state.basket||[]).filter(isBasketCollected);
+    let bodyHtml=renderBasketRows(pending,'basket',basketRowHtml,8);
+    if(collected.length){const key='basket_collected';bodyHtml+=tableCategoryRow(key,'Собрано',collected.length,8)+basketSorted(collected).map(x=>basketRowHtml(x,'group-'+key)).join('')}
+    if(!bodyHtml) bodyHtml='<tr><td colspan="8"><div class="empty">В активной корзине пока нет товаров.</div></td></tr>';
+    body.innerHTML=bodyHtml;renderBasketSecondary();
+  }
+  function toggleBasketSecondary(which){if(which==='removed')basketRemovedOpen=!basketRemovedOpen;else basketAvailableOpen=!basketAvailableOpen;renderBasketSecondary()}
+  function candidateRow(item,kind,groupClass=''){const removed=kind==='removed';const action=removed?`restoreRemovedBasket('${item.basketItemId}',this)`:`addExistingBasketProduct('${item.productId}',this)`;return `<tr class="${groupClass} ${removed?'basket-removed-row':''}"><td class="basket-candidate-check"><input type="checkbox" aria-label="Добавить ${esc(item.name)}" onchange="${action}"></td><td><strong>${esc(item.name)}</strong><div class="candidate-status">${removed?'Удалено из текущей корзины':esc(item.homeStatus||'')}</div></td><td>${esc(item.category||'Без категории')}</td><td>${qtext(item.currentStock,item.unit)} ${esc(item.unit||'')}</td></tr>`;}
+  function secondarySection(rootId,title,items,kind,isOpen){const root=document.getElementById(rootId);if(!root)return;const body=items.length?renderBasketRows(items,'basket_'+kind,(x,g)=>candidateRow(x,kind,g),4):`<tr><td colspan="4"><div class="empty">Список пуст</div></td></tr>`;root.innerHTML=`<div class="basket-secondary ${isOpen?'open':''}"><button type="button" class="basket-secondary-head" onclick="toggleBasketSecondary('${kind}')"><span><span class="cat-arrow">▾</span>${esc(title)}</span><span class="cat-count">${items.length}</span></button><div class="basket-secondary-body"><div class="table-wrap" style="border:0;border-radius:0"><table class="basket-candidate-table"><thead><tr><th class="basket-candidate-check">+</th><th>Товар</th><th>Категория</th><th>Осталось</th></tr></thead><tbody>${body}</tbody></table></div></div></div>`;}
+  function renderBasketSecondary(){const activeIds=new Set((state.basket||[]).map(i=>i.productId).filter(Boolean));const removed=(state.basketRemoved||[]).filter(i=>!activeIds.has(i.productId));const removedIds=new Set(removed.map(i=>i.productId).filter(Boolean));const available=(state.products||[]).filter(p=>!activeIds.has(p.productId)&&!removedIds.has(p.productId));secondarySection('basketRemovedRoot','Удалено из корзины',removed,'removed',basketRemovedOpen);secondarySection('basketAvailableRoot','Остальные товары',available,'available',basketAvailableOpen);}
+  function toggleBasketCollected(id,checked){const item=basketItem(id);if(!item)return;item.status=checked?'собрано':'активно';markBasketDirty();renderBasket();}
+  function basketItem(id){return (state.basket||[]).find(x=>x.basketItemId===id)}
+  function updateBasketDraftLine(id){const item=basketItem(id);if(!item)return;const q=document.getElementById('qty_'+id);const p=document.getElementById('price_'+id);if(q)item.qty=qnum(q.value,item.unit);if(p)item.unitPrice=Math.max(0,rawNumber(p.value));item.sum=Math.round((rawNumber(item.qty)*rawNumber(item.unitPrice)+Number.EPSILON)*100)/100;const sum=document.getElementById('sum_'+id);if(sum)sum.textContent=money(item.sum);markBasketDirty();renderBasketSummary();}
+  function stepBasket(id,direction){const item=basketItem(id);if(!item)return;const el=document.getElementById('qty_'+id);if(!el)return;const step=unitStep(item.unit);el.value=qinput(Math.max(0,rawNumber(el.value)+direction*step),item.unit);updateBasketDraftLine(id);}
+
+  function removeBasket(id){
+    const index=(state.basket||[]).findIndex(x=>x.basketItemId===id);if(index<0)return;
+    const item=state.basket.splice(index,1)[0];
+    item.status='удалено';
+    state.basketRemoved=state.basketRemoved||[];
+   
