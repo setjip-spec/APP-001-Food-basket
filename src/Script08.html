@@ -1,0 +1,57 @@
+seModal('storeModal');renderAll();toast('Магазин сохранён')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+  function openCashbackModal(){const f=document.getElementById('cashbackForm');f.reset();f.month.value=new Date().toISOString().slice(0,7);openModal('cashbackModal')}
+  async function submitCashback(e){e.preventDefault();setLoading(true);try{state=await api('saveCashback',formObject(e.target));closeModal('cashbackModal');renderAll();toast('Кэшбэк сохранён')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+
+
+  function openPurchaseModal(){
+    if(!(state.basket||[]).length){toast('Корзина пуста',true);return}
+    const s=basketDraftSummary();
+    const store=draftStore();
+    const storeId=basketDraftStoreId||'';
+    const key=storeId||'NO_STORE';
+    const name=store?store.name:'Покупка';
+    document.getElementById('purchaseFields').innerHTML=`<div class="mini-card"><strong>${esc(name)}</strong><div class="row-sub" style="margin-top:5px">Кэшбэк ${esc(basketDraftCashbackPercent)}% · ${basketDraftCashbackLimit>0?'лимит '+money(basketDraftCashbackLimit):'без лимита'} · из корзины</div><div class="form-grid" style="margin-top:11px"><div class="field"><label>Фактическая сумма, ₽</label><input type="number" step="0.01" name="actual_${esc(key)}" value="${Number(s.total)||0}" oninput="refreshPurchaseCashback()"></div><div class="field"><label>Скидка, ₽</label><input type="number" step="0.01" name="discount_${esc(key)}" value="0"></div><div class="field"><label>Кэшбэк по покупке</label><input id="purchaseCashbackPreview" value="${money(s.cashback)}" disabled></div><div class="field"><label>После кэшбэка</label><input id="purchaseNetPreview" value="${money(s.effective)}" disabled></div></div></div>`;
+    openModal('purchaseModal');
+    refreshPurchaseCashback();
+  }
+
+
+  function refreshPurchaseCashback(){
+    const actual=document.querySelector('#purchaseFields input[name^="actual_"]');
+    const cashback=document.getElementById('purchaseCashbackPreview');
+    const net=document.getElementById('purchaseNetPreview');
+    if(!actual||!cashback||!net)return;
+    const total=Math.max(0,rawNumber(actual.value));
+    const value=draftCashback(total);
+    cashback.value=money(value);
+    net.value=money(Math.max(0,total-value));
+  }
+
+
+  async function submitPurchase(e){
+    e.preventDefault();
+    if(!(state.basket||[]).length){toast('Корзина пуста',true);return}
+    const fd=new FormData(e.target);
+    const key=basketDraftStoreId||'NO_STORE';
+    const actualsByStore={};
+    actualsByStore[key]={actualTotal:fd.get('actual_'+key),discount:fd.get('discount_'+key)};
+    const request={draft:{storeId:basketDraftStoreId,items:collectBasketDraftItems()},cashbackPercent:basketDraftCashbackPercent,cashbackLimit:basketDraftCashbackLimit,actualsByStore};
+    setLoading(true);
+    try{
+      state=await api('completePurchase',request);
+      basketDirty=false;
+      basketDraftCashbackPercent=0;
+      basketDraftCashbackLimit=0;
+      resetBasketDraft(true);
+      closeModal('purchaseModal');
+      renderAll();
+      showPage('history');
+      toast('Покупка сохранена');
+    }catch(err){toast(err.message,true)}
+    finally{setLoading(false)}
+  }
+
+
+  function openModal(id){document.getElementById(id).classList.add('open')}
+  function closeModal(id){document.getElementById(id).classList.remove('open')}
+  function formObject(form){return Object.fromEntries(new FormData(form).entries())}
