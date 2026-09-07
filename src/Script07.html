@@ -1,0 +1,27 @@
+),btn=document.getElementById('almost_'+el.dataset.id);return{productId:el.dataset.id,currentStock:qnum(el.value,p?.unit||'шт.'),almostEmpty:!!(p?.unit==='шт.'&&btn?.dataset.value==='true')}});setLoading(true);try{state=await api('buildBasketFromInventory',items);closeModal('inventoryModal');renderAll();showPage('basket');toast('Корзина сформирована')}catch(e){toast(e.message,true)}finally{setLoading(false)}}
+
+  function fillProductNames(){document.getElementById('productNames').innerHTML=state.products.map(p=>`<option value="${esc(p.name)}"></option>`).join('')}
+  function fillCategorySelects(){document.getElementById('quickCategory').innerHTML=categoryOptions('');document.getElementById('productCategory').innerHTML=categoryOptions(document.getElementById('productCategory').value||'')}
+  function openQuickAddModal(){const f=document.getElementById('quickAddForm');f.reset();fillProductNames();document.getElementById('quickCategory').innerHTML=categoryOptions('');openModal('quickAddModal')}
+  async function submitQuickAdd(e){
+    e.preventDefault();
+    const payload=formObject(e.target);
+    const name=String(payload.name||'').trim();
+    const existing=(state.products||[]).find(p=>String(p.name||'').trim().toLowerCase()===name.toLowerCase());
+    if(existing){localAddExistingProduct(existing.productId,payload.qty,payload.price);closeModal('quickAddModal');showPage('basket');toast('Товар добавлен в черновик корзины');return;}
+    if(basketDirty){toast('Сначала сохраните корзину, затем добавьте новый товар.',true);return}
+    setLoading(true);
+    try{state=await api('addOrCreateBasketItem',payload);resetBasketDraft();closeModal('quickAddModal');renderAll();showPage('basket');toast('Новый товар создан и добавлен');}catch(err){toast(err.message,true)}finally{setLoading(false)}
+  }
+
+  function openProductModal(){const f=document.getElementById('productForm');f.reset();f.productId.value='';document.getElementById('productCategory').innerHTML=categoryOptions('');document.getElementById('productUnit').value='шт.';document.getElementById('productWeekly').value='1';document.getElementById('productStock').value='0';refreshProductSteps();document.getElementById('productModalTitle').textContent='Новый продукт';openModal('productModal')}
+  function editProduct(id){const p=state.products.find(x=>x.productId===id);if(!p)return;const f=document.getElementById('productForm');f.reset();document.getElementById('productCategory').innerHTML=categoryOptions(p.category||'');f.elements.productId.value=p.productId;f.elements.name.value=p.name||'';f.elements.category.value=p.category||'';f.elements.pack.value=p.unit||'шт.';f.elements.daysSupply.value=p.daysSupply||'';f.elements.weeklyTarget.value=qinput(p.weeklyTarget,p.unit);f.elements.currentStock.value=qinput(p.currentStock,p.unit);f.elements.price.value=p.price||'';f.elements.note.value=p.note||'';refreshProductSteps();document.getElementById('productModalTitle').textContent='Изменить продукт';openModal('productModal')}
+  function refreshProductSteps(){const unit=document.getElementById('productUnit').value,step=unitStep(unit);['productWeekly','productStock'].forEach(id=>{const el=document.getElementById(id);el.step=step;el.value=qinput(qnum(el.value,unit),unit)})}
+  function stepProductField(id,direction){const unit=document.getElementById('productUnit').value,el=document.getElementById(id),step=unitStep(unit);el.value=qinput(Math.max(0,rawNumber(el.value)+direction*step),unit)}
+  async function submitProduct(e){e.preventDefault();const payload=formObject(e.target),unit=payload.pack||'шт.';payload.weeklyTarget=qnum(payload.weeklyTarget,unit);payload.currentStock=qnum(payload.currentStock,unit);setLoading(true);try{state=await api('saveProduct',payload);closeModal('productModal');renderAll();showPage('products');toast('Продукт сохранён')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+
+  function renderSettings(){if(!state?.settings)return;const f=document.getElementById('settingsForm'),s=state.settings,c=s.stockColumns;f.elements.lowStockPercent.value=s.lowStockPercent;document.getElementById('lowStockValue').textContent=s.lowStockPercent+'%';f.elements.groupMode.value=s.stockGroupMode;f.elements.kgStep.value=String(s.kgStep||0.1);f.elements.showUnit.checked=!!c.unit;f.elements.showWeeklyTarget.checked=!!c.weeklyTarget;f.elements.showRemaining.checked=!!c.remaining;f.elements.showToBuy.checked=!!c.toBuy;f.elements.showLastPurchase.checked=!!c.lastPurchase;f.elements.showStatus.checked=!!c.status}
+  async function submitSettings(e){e.preventDefault();const f=e.target,payload={lowStockPercent:f.elements.lowStockPercent.value,groupMode:f.elements.groupMode.value,kgStep:f.elements.kgStep.value,showUnit:f.elements.showUnit.checked,showWeeklyTarget:f.elements.showWeeklyTarget.checked,showRemaining:f.elements.showRemaining.checked,showToBuy:f.elements.showToBuy.checked,showLastPurchase:f.elements.showLastPurchase.checked,showStatus:f.elements.showStatus.checked};setLoading(true);try{state=await api('saveSettings',payload);renderAll();showPage('settings');toast('Настройки сохранены')}catch(err){toast(err.message,true)}finally{setLoading(false)}}
+
+  function openStoreModal(){document.getElementById('storeForm').reset();openModal('storeModal')}
+  async function submitStore(e){e.preventDefault();setLoading(true);try{state=await api('saveStore',formObject(e.target));clo
