@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f3f1ea">
   <title>APP-001 — Продуктовая корзина</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./cloud-backend.js"></script>
+  <script src="./cloud-backend.js?v=20260907-bootfix"></script>
   <style>
     html,body{margin:0;min-height:100%;background:#f3f1ea;font-family:Arial,sans-serif}
     #bootScreen{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:#f3f1ea;color:#555850}
@@ -43,7 +43,7 @@
       const base='./src/';
       const names=['Style01.html','Body01.html','Script01.html','Script02.html','Script03.html','Script04.html','Script05.html','Script06.html','Script07.html','Script08.html'];
       const files=await Promise.all(names.map(async name=>{
-        const r=await fetch(base+name+'?v=20260907-supabase',{cache:'no-cache'});
+        const r=await fetch(base+name+'?v=20260907-bootfix',{cache:'no-cache'});
         if(!r.ok)throw new Error(name+': HTTP '+r.status);
         return r.text();
       }));
@@ -54,8 +54,10 @@
       let js=scripts.join('\n');
       const oldApi="function api(name,...args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err&&err.message?err.message:String(err))))[name](...args));}";
       if(!js.includes(oldApi))throw new Error('Не найден legacy API adapter');
+      if(!js.includes("document.addEventListener('DOMContentLoaded',()=>{"))throw new Error('Не найден блок запуска приложения');
       js=js.replace(oldApi,"function api(name,...args){return cloudApi(name,args);}");
-      js=js.replace("    loadState();\n  });","    bootCloud();\n  });");
+      js=js.replace("document.addEventListener('DOMContentLoaded',()=>{","(()=>{");
+      js=js.replace("    loadState();\n  });","    bootCloud();\n  })();");
       const script=document.createElement('script');script.textContent=js;document.body.appendChild(script);
       boot.remove();
     }catch(err){
