@@ -17,22 +17,34 @@ jobs:
         with:
           node-version: 22
 
-      - name: Check Apps Script server syntax
+      - name: Check Supabase cloud adapter syntax
+        run: node --check cloud-backend.js
+
+      - name: Check GitHub Pages loader JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re, pathlib
+          html=pathlib.Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',html,re.S)
+          pathlib.Path('/tmp/index-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          PY
+          node --check /tmp/index-inline.js
+
+      - name: Check legacy Apps Script recovery source
         shell: bash
         run: |
           cat src/*_Server.gs > /tmp/server.js
           node --check /tmp/server.js
-
-      - name: Check UI JavaScript syntax
-        shell: bash
-        run: |
           cat src/Script*.html > /tmp/ui.js
           node --check /tmp/ui.js
 
-      - name: Check required Apps Script files
+      - name: Check required GitHub Pages files
         shell: bash
         run: |
-          test -f src/Index.html
+          test -f index.html
+          test -f cloud-backend.js
+          test -f .nojekyll
           test -f src/Style01.html
           test -f src/Body01.html
-          test -f appsscript.json
+          test -f src/Script01.html
