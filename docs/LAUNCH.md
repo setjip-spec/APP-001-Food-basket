@@ -1,62 +1,58 @@
-# APP-001 — как запускать
+# APP-001 — запуск
 
-## 1. Пользовательский запуск
-
-После первичной настройки GitHub Pages приложение открывается по одной ссылке:
+## Основной пользовательский URL
 
 **https://setjip-spec.github.io/APP-001-Food-basket/**
 
-Эту ссылку используем как основную. Прямая Apps Script `/exec`-ссылка остаётся технической резервной ссылкой.
+Это единственная штатная пользовательская ссылка APP-001.
 
-## 2. Что нужно сделать один раз прямо сейчас
+## Новый стандарт запуска
 
-На GitHub:
+APP-001 должна запускаться непосредственно как GitHub Pages Web App.
 
-1. Открыть `setjip-spec/APP-001-Food-basket`.
-2. Нажать **Settings**.
-3. Слева открыть **Pages**.
-4. В `Build and deployment`:
-   - Source → **Deploy from a branch**;
-   - Branch → **main**;
-   - Folder → **/(root)**.
-5. Нажать **Save**.
-6. Подождать публикацию.
-7. Нажать **Visit site** или открыть `https://setjip-spec.github.io/APP-001-Food-basket/`.
+Google Apps Script Web App больше не используется как штатный runtime, iframe или резервный пользовательский запуск.
 
-В корне репозитория уже есть `index.html` и `.nojekyll`.
+Целевая схема:
 
-## 3. Почему приложение всё ещё использует Google
+`GitHub main → GitHub Pages → browser runtime → DATA layer`
 
-GitHub Pages сейчас является удобной постоянной точкой запуска.
+## Первичная настройка Pages
 
-Само приложение v1.0 продолжает выполнять серверные функции в Google Apps Script, потому что там уже работает связка с Google Sheets DATA.
+Для нового репозитория один раз:
 
-Схема:
+1. Repository → `Settings`.
+2. `Pages`.
+3. `Build and deployment` → `Deploy from a branch`.
+4. Branch → `main`.
+5. Folder → `/(root)` если `index.html` лежит в корне.
+6. `Save`.
+7. После публикации открыть `Visit site`.
 
-`GitHub Pages → Apps Script Web App → Google Sheets`
+После этого обычные static-изменения, попавшие в `main`, публикуются через GitHub Pages.
 
-## 4. Как запускать после будущих изменений
+## Если проекту нужна сборка
 
-### Если изменился только корневой GitHub Pages launcher
+Для Vite/React/TypeScript или другого build-процесса использовать GitHub Actions Pages deployment. Пользовательский URL остаётся GitHub Pages.
 
-После попадания изменения в `main` GitHub Pages публикует его автоматически.
+## DATA
 
-### Если изменился код приложения в `src/`
+GitHub Pages не является базой данных. Перед реализацией выбирается DATA MODE:
 
-Пока не настроен автоматический `clasp` deployment, Apps Script нужно синхронизировать отдельно. Но исходником всегда остаётся GitHub — нельзя делать постоянную правку только в Apps Script Editor.
+- `LOCAL`: IndexedDB/localStorage + JSON export/import;
+- `CLOUD DATA`: внешний API/облачное хранилище для синхронизации между устройствами;
+- `EXTERNAL BACKEND`: отдельный backend, если нужны секреты, серверная логика, auth или интеграции.
 
-## 5. Следующий инфраструктурный шаг
+Google Sheets/Drive можно использовать как DATA/recovery-хранилище только отдельным безопасным способом; Google Apps Script Web App не используется.
 
-Привязать существующий Google Apps Script проект к этому репозиторию через `clasp` и затем GitHub Actions.
+## Текущая миграция APP-001
 
-После этого целевая схема будет:
+На момент принятия нового регламента корневой `index.html` ещё открывает legacy Apps Script через iframe. Это временная несовместимость.
 
-`изменение GitHub → проверки → main → автоматический push в Apps Script → GitHub Pages открывает обновлённую версию`.
+Чтобы APP-001 считалась полностью переведённой на новый стандарт, нужно:
 
-Для привязки потребуется **Script ID** существующего Apps Script-проекта (`Apps Script → Project Settings → Script ID`). Это не `/exec` URL и не Deployment ID.
-
-## 6. Аварийный запуск
-
-Если GitHub Pages временно не работает, приложение можно открыть напрямую:
-
-https://script.google.com/macros/s/AKfycbxBqlHi4S8A4WufIBkmw5dYv_OB_FpJqbQmATJNTUsiQGFKYTmNASpwzfolc6XN0si9/exec
+1. перенести UI и бизнес-логику в самостоятельный GitHub Pages frontend;
+2. выбрать DATA MODE;
+3. перенести/импортировать текущие данные;
+4. убрать Apps Script iframe/runtime;
+5. проверить полный пользовательский цикл;
+6. создать новый Google BACKUP SAFE snapshot.
