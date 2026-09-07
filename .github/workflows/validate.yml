@@ -17,20 +17,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: Check Code.gs syntax
+      - name: Check Apps Script server syntax
         shell: bash
         run: |
-          cp src/Code.gs /tmp/Code.js
-          node --check /tmp/Code.js
+          cat src/*_Server.gs > /tmp/server.js
+          node --check /tmp/server.js
 
-      - name: Check inline JavaScript in Index.html
+      - name: Check UI JavaScript syntax
         shell: bash
         run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const html = fs.readFileSync('src/Index.html', 'utf8');
-          const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
-          if (!scripts.length) throw new Error('Inline <script> block not found in src/Index.html');
-          fs.writeFileSync('/tmp/index-inline.js', scripts.join('\n'));
-          NODE
-          node --check /tmp/index-inline.js
+          cat src/Script*.html > /tmp/ui.js
+          node --check /tmp/ui.js
+
+      - name: Check required Apps Script files
+        shell: bash
+        run: |
+          test -f src/Index.html
+          test -f src/Style01.html
+          test -f src/Body01.html
+          test -f appsscript.json
