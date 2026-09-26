@@ -209,12 +209,18 @@ seModal('storeModal');renderAll();toast('Магазин сохранён')}catch
     return '<div class="mobile-candidate"><div><b>'+esc(item.name)+'</b><small>'+esc(item.category||'Без категории')+' · дома '+qtext(item.currentStock,item.unit)+' '+esc(item.unit||'')+'</small></div><button type="button" onclick="'+action+'">'+(removed?'Вернуть':'Добавить')+'</button></div>';
   }
 
+  function mobileBasketOrder(items){
+    const arr=[...(items||[])];
+    if(basketSortMode==='category')return arr.sort((a,b)=>String(a.category||'Без категории').localeCompare(String(b.category||'Без категории'),'ru')||String(a.name||'').localeCompare(String(b.name||''),'ru'));
+    return basketSorted(arr);
+  }
+
   function renderMobileBasket(){
     const root=document.getElementById('mobileBasketRoot');
     if(!root||!state)return;
     const active=state.basket||[];
-    const pending=basketSorted(active.filter(i=>!isBasketCollected(i)));
-    const collected=basketSorted(active.filter(isBasketCollected));
+    const pending=mobileBasketOrder(active.filter(i=>!isBasketCollected(i)));
+    const collected=mobileBasketOrder(active.filter(isBasketCollected));
     const activeIds=new Set(active.map(i=>i.productId).filter(Boolean));
     const removed=(state.basketRemoved||[]).filter(i=>!activeIds.has(i.productId));
     const removedIds=new Set(removed.map(i=>i.productId).filter(Boolean));
@@ -222,8 +228,8 @@ seModal('storeModal');renderAll();toast('Магазин сохранён')}catch
 
     let html='<section class="mobile-basket-section"><div class="mobile-basket-section-head"><span>Нужно купить</span><span class="count">'+pending.length+'</span></div>'+(pending.length?pending.map(mobileBasketCard).join(''):'<div class="mobile-basket-empty">В корзине сейчас ничего не осталось купить.</div>')+'</section>';
     if(collected.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Собрано</span><span class="count">'+collected.length+'</span></summary>'+collected.map(mobileBasketCard).join('')+'</details>';
-    if(removed.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Удалено из корзины</span><span class="count">'+removed.length+'</span></summary>'+basketSorted(removed).map(i=>mobileCandidate(i,'removed')).join('')+'</details>';
-    if(available.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Остальные товары</span><span class="count">'+available.length+'</span></summary>'+basketSorted(available).map(i=>mobileCandidate(i,'available')).join('')+'</details>';
+    if(removed.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Удалено из корзины</span><span class="count">'+removed.length+'</span></summary>'+mobileBasketOrder(removed).map(i=>mobileCandidate(i,'removed')).join('')+'</details>';
+    if(available.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Остальные товары</span><span class="count">'+available.length+'</span></summary>'+mobileBasketOrder(available).map(i=>mobileCandidate(i,'available')).join('')+'</details>';
     root.innerHTML=html;
     refreshPhoneModeUi();
   }
