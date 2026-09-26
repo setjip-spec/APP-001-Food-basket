@@ -55,3 +55,193 @@ seModal('storeModal');renderAll();toast('Магазин сохранён')}catch
   function openModal(id){document.getElementById(id).classList.add('open')}
   function closeModal(id){document.getElementById(id).classList.remove('open')}
   function formObject(form){return Object.fromEntries(new FormData(form).entries())}
+
+  // ===== APP-001 PHONE MODE =====
+  function isPhoneMode(){
+    return window.matchMedia&&window.matchMedia('(max-width: 820px)').matches;
+  }
+
+  function activatePhoneModeAfterLoad(){
+    if(!isPhoneMode())return;
+    let page='';
+    try{page=localStorage.getItem('app001-phone-page')||''}catch{}
+    if(!['stock','basket'].includes(page))page=(state?.basket||[]).length?'basket':'stock';
+    showPage(page);
+  }
+
+  function syncPhoneModeAfterResize(){
+    if(!state)return;
+    if(isPhoneMode()){
+      const active=document.querySelector('.page.active')?.id?.replace('page-','')||'';
+      if(!['stock','basket'].includes(active))activatePhoneModeAfterLoad();
+    }else{
+      document.body.dataset.phonePage='';
+    }
+    refreshPhoneModeUi();
+  }
+
+  function refreshPhoneModeUi(){
+    if(!state)return;
+    const badge=document.getElementById('mobileBasketBadge');
+    if(badge)badge.textContent=String((state.basket||[]).filter(i=>!isBasketCollected(i)).length);
+    const stockCount=document.getElementById('mobileStockCount');
+    if(stockCount)stockCount.textContent=String((state.products||[]).length);
+    document.body.classList.toggle('phone-mode',isPhoneMode());
+  }
+
+  function mobileInventoryStatus(p,stock,almost){
+    const target=Math.max(0,rawNumber(p.weeklyTarget));
+    const percent=target>0?(stock/target)*100:100;
+    if(stock<=0)return 'закончилось';
+    if((p.unit==='шт.'&&almost)||percent<Number(state?.settings?.lowStockPercent||20))return 'заканчивается';
+    return 'есть достаточно';
+  }
+
+  function mobileInventoryCard(p){
+    const stock=qnum(p.currentStock,p.unit);
+    const almost=!!(p.unit==='шт.'&&p.almostEmpty&&stock>0);
+    const status=mobileInventoryStatus(p,stock,almost);
+    const cls=status==='закончилось'?'ended':status==='заканчивается'?'ending':'';
+    const almostBtn=p.unit==='шт.'?'<button id="malmost_'+p.productId+'" type="button" class="almost-btn '+(almost?'active':'')+'" data-value="'+(almost?'true':'false')+'" aria-label="Почти пусто" title="Почти пусто" onclick="mobileToggleAlmost(\''+p.productId+'\')">◔</button>':'';
+    return '<div id="minv_'+p.productId+'" class="mobile-inventory-card '+cls+'">'+
+      '<div class="mobile-inventory-name"><b>'+esc(p.name)+'</b><small>'+esc(p.category||'Без категории')+' · '+esc(p.unit)+' · <span id="mstatus_'+p.productId+'" class="mobile-inventory-status">'+esc(status)+'</span></small></div>'+
+      '<div class="mobile-inventory-control"><div class="stepper"><button type="button" onclick="mobileStepStock(\''+p.productId+'\',-1)">−</button><input id="mstock_'+p.productId+'" data-id="'+p.productId+'" class="mobile-stock-step-value" value="'+qinput(stock,p.unit)+'" readonly><button type="button" onclick="mobileStepStock(\''+p.productId+'\',1)">+</button></div>'+almostBtn+'</div>'+
+    '</div>';
+  }
+
+  function renderMobileInventory(){
+    const root=document.getElementById('mobileInventoryRoot');
+    if(!root||!state)return;
+    const products=state.products||[];
+    if(!products.length){root.innerHTML='<div class="mobile-basket-empty">Продуктов пока нет. Добавить их можно с компьютера.</div>';return}
+    const grouped=state.settings?.stockGroupMode==='category';
+    const groups=grouped?categoryGroups(products):[{name:'Сначала нужное',items:stockPrioritySort(products)}];
+    root.innerHTML=groups.map(g=>'<section class="mobile-inventory-group"><div class="mobile-inventory-group-title"><span>'+esc(g.name)+'</span><span>'+g.items.length+'</span></div>'+g.items.map(mobileInventoryCard).join('')+'</section>').join('');
+    refreshPhoneModeUi();
+  }
+
+  function mobileStepStock(id,direction){
+    const p=(state.products||[]).find(x=>x.productId===id);
+    const el=document.getElementById('mstock_'+id);
+    if(!p||!el)return;
+    el.value=qinput(Math.max(0,rawNumber(el.value)+direction*unitStep(p.unit)),p.unit);
+    updateMobileInventoryVisual(id);
+  }
+
+  function mobileToggleAlmost(id){
+    const p=(state.products||[]).find(x=>x.productId===id);
+    const btn=document.getElementById('malmost_'+id);
+    const stockEl=document.getElementById('mstock_'+id);
+    if(!p||!btn||p.unit!=='шт.'||!stockEl)return;
+    if(qnum(stockEl.value,p.unit)<=0){btn.dataset.value='false';btn.classList.remove('active');updateMobileInventoryVisual(id);return}
+    const next=btn.dataset.value!=='true';
+    btn.dataset.value=next?'true':'false';
+    btn.classList.toggle('active',next);
+    updateMobileInventoryVisual(id);
+  }
+
+  function updateMobileInventoryVisual(id){
+    const p=(state.products||[]).find(x=>x.productId===id);
+    const card=document.getElementById('minv_'+id);
+    const el=document.getElementById('mstock_'+id);
+    const btn=document.getElementById('malmost_'+id);
+    const label=document.getElementById('mstatus_'+id);
+    if(!p||!card||!el)return;
+    const stock=qnum(el.value,p.unit);
+    const almost=!!(p.unit==='шт.'&&stock>0&&btn?.dataset.value==='true');
+    if(btn&&stock<=0){btn.dataset.value='false';btn.classList.remove('active')}
+    const status=mobileInventoryStatus(p,stock,almost);
+    card.classList.toggle('ended',status==='закончилось');
+    card.classList.toggle('ending',status==='заканчивается');
+    if(label)label.textContent=status;
+  }
+
+  function collectMobileInventory(){
+    return [...document.querySelectorAll('#mobileInventoryRoot .mobile-stock-step-value')].map(el=>{
+      const p=(state.products||[]).find(x=>x.productId===el.dataset.id);
+      const btn=document.getElementById('malmost_'+el.dataset.id);
+      return{
+        productId:el.dataset.id,
+        currentStock:qnum(el.value,p?.unit||'шт.'),
+        almostEmpty:!!(p?.unit==='шт.'&&rawNumber(el.value)>0&&btn?.dataset.value==='true')
+      };
+    });
+  }
+
+  async function submitMobileInventory(){
+    if(!isPhoneMode()){openInventoryModal();return}
+    const items=collectMobileInventory();
+    if(!items.length){toast('Нет продуктов для проверки',true);return}
+    setLoading(true);
+    try{
+      if(basketDirty){
+        state=await api('saveBasketDraft',{storeId:basketDraftStoreId,items:collectBasketDraftItems()});
+        resetBasketDraft(false);
+      }
+      state=await api('buildBasketFromInventory',items);
+      resetBasketDraft(false);
+      renderAll();
+      showPage('basket');
+      toast('Остатки сохранены, корзина обновлена');
+    }catch(err){toast(err.message||String(err),true)}
+    finally{setLoading(false)}
+  }
+
+  function mobileBasketCard(i){
+    const collected=isBasketCollected(i);
+    return '<article class="mobile-basket-card '+(collected?'collected':'')+'">'+
+      '<input class="mobile-basket-check" type="checkbox" '+(collected?'checked':'')+' aria-label="Собрано: '+esc(i.name)+'" onchange="toggleBasketCollected(\''+i.basketItemId+'\',this.checked)">'+
+      '<div class="mobile-basket-main">'+
+        '<div class="mobile-basket-title-row"><b>'+esc(i.name)+'</b><strong id="mobile_sum_'+i.basketItemId+'" class="mobile-basket-sum">'+money(i.sum)+'</strong></div>'+
+        '<div class="mobile-basket-meta">Дома '+qtext(i.currentStock,i.unit)+' '+esc(i.unit||'')+' · нужно '+qtext(i.recommendedQty,i.unit)+' '+esc(i.unit||'')+' · '+esc(i.category||'Без категории')+'</div>'+
+        '<div class="mobile-basket-edit">'+
+          '<div class="mobile-basket-field"><label>Купить</label><div class="stepper"><button type="button" onclick="mobileStepBasket(\''+i.basketItemId+'\',-1)">−</button><input id="mqty_'+i.basketItemId+'" value="'+qinput(i.qty,i.unit)+'" readonly><button type="button" onclick="mobileStepBasket(\''+i.basketItemId+'\',1)">+</button></div></div>'+
+          '<div class="mobile-basket-field"><label>Цена / ед.</label><input id="mprice_'+i.basketItemId+'" class="price-input" type="number" min="0" step="0.01" inputmode="decimal" value="'+(Number(i.unitPrice)||0)+'" oninput="mobileSetBasketPrice(\''+i.basketItemId+'\',this.value)"></div>'+
+          '<button type="button" class="mobile-basket-remove" onclick="removeBasket(\''+i.basketItemId+'\')" aria-label="Удалить '+esc(i.name)+'">×</button>'+
+        '</div>'+
+      '</div>'+
+    '</article>';
+  }
+
+  function mobileCandidate(item,kind){
+    const removed=kind==='removed';
+    const action=removed?('restoreRemovedBasket(\''+item.basketItemId+'\')'):('localAddExistingProduct(\''+item.productId+'\')');
+    return '<div class="mobile-candidate"><div><b>'+esc(item.name)+'</b><small>'+esc(item.category||'Без категории')+' · дома '+qtext(item.currentStock,item.unit)+' '+esc(item.unit||'')+'</small></div><button type="button" onclick="'+action+'">'+(removed?'Вернуть':'Добавить')+'</button></div>';
+  }
+
+  function renderMobileBasket(){
+    const root=document.getElementById('mobileBasketRoot');
+    if(!root||!state)return;
+    const active=state.basket||[];
+    const pending=basketSorted(active.filter(i=>!isBasketCollected(i)));
+    const collected=basketSorted(active.filter(isBasketCollected));
+    const activeIds=new Set(active.map(i=>i.productId).filter(Boolean));
+    const removed=(state.basketRemoved||[]).filter(i=>!activeIds.has(i.productId));
+    const removedIds=new Set(removed.map(i=>i.productId).filter(Boolean));
+    const available=(state.products||[]).filter(p=>!activeIds.has(p.productId)&&!removedIds.has(p.productId));
+
+    let html='<section class="mobile-basket-section"><div class="mobile-basket-section-head"><span>Нужно купить</span><span class="count">'+pending.length+'</span></div>'+(pending.length?pending.map(mobileBasketCard).join(''):'<div class="mobile-basket-empty">В корзине сейчас ничего не осталось купить.</div>')+'</section>';
+    if(collected.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Собрано</span><span class="count">'+collected.length+'</span></summary>'+collected.map(mobileBasketCard).join('')+'</details>';
+    if(removed.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Удалено из корзины</span><span class="count">'+removed.length+'</span></summary>'+basketSorted(removed).map(i=>mobileCandidate(i,'removed')).join('')+'</details>';
+    if(available.length)html+='<details class="mobile-basket-section"><summary class="mobile-basket-section-head"><span>Остальные товары</span><span class="count">'+available.length+'</span></summary>'+basketSorted(available).map(i=>mobileCandidate(i,'available')).join('')+'</details>';
+    root.innerHTML=html;
+    refreshPhoneModeUi();
+  }
+
+  function mobileStepBasket(id,direction){
+    const item=basketItem(id);
+    if(!item)return;
+    item.qty=qnum(Math.max(0,rawNumber(item.qty)+direction*unitStep(item.unit)),item.unit);
+    item.sum=Math.round((rawNumber(item.qty)*rawNumber(item.unitPrice)+Number.EPSILON)*100)/100;
+    markBasketDirty();
+    renderBasket();
+  }
+
+  function mobileSetBasketPrice(id,value){
+    const item=basketItem(id);
+    if(!item)return;
+    item.unitPrice=Math.max(0,rawNumber(value));
+    item.sum=Math.round((rawNumber(item.qty)*rawNumber(item.unitPrice)+Number.EPSILON)*100)/100;
+    const sum=document.getElementById('mobile_sum_'+id);if(sum)sum.textContent=money(item.sum);
+    markBasketDirty();
+  }
