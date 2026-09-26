@@ -7,7 +7,7 @@ r"><button type="button" onclick="stepBasket('${i.basketItemId}',-1)">−</butto
     let bodyHtml=renderBasketRows(pending,'basket',basketRowHtml,8);
     if(collected.length){const key='basket_collected';bodyHtml+=tableCategoryRow(key,'Собрано',collected.length,8)+basketSorted(collected).map(x=>basketRowHtml(x,'group-'+key)).join('')}
     if(!bodyHtml) bodyHtml='<tr><td colspan="8"><div class="empty">В активной корзине пока нет товаров.</div></td></tr>';
-    body.innerHTML=bodyHtml;renderBasketSecondary();
+    body.innerHTML=bodyHtml;renderBasketSecondary();renderMobileBasket();refreshPhoneModeUi();
   }
   function toggleBasketSecondary(which){if(which==='removed')basketRemovedOpen=!basketRemovedOpen;else basketAvailableOpen=!basketAvailableOpen;renderBasketSecondary()}
   function candidateRow(item,kind,groupClass=''){const removed=kind==='removed';const action=removed?`restoreRemovedBasket('${item.basketItemId}',this)`:`addExistingBasketProduct('${item.productId}',this)`;return `<tr class="${groupClass} ${removed?'basket-removed-row':''}"><td class="basket-candidate-check"><input type="checkbox" aria-label="Добавить ${esc(item.name)}" onchange="${action}"></td><td><strong>${esc(item.name)}</strong><div class="candidate-status">${removed?'Удалено из текущей корзины':esc(item.homeStatus||'')}</div></td><td>${esc(item.category||'Без категории')}</td><td>${qtext(item.currentStock,item.unit)} ${esc(item.unit||'')}</td></tr>`;}
