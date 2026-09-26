@@ -33,7 +33,9 @@ c(s.name)}</option>`).join('')}
 
   function changeBasketStoreDraft(storeId){basketDraftStoreId=storeId||'';const store=draftStore();(state.basket||[]).forEach(i=>{i.storeId=store?store.storeId:'';i.storeName=store?store.name:'';});markBasketDirty();renderBasketSummary();}
   function collectBasketDraftItems(){
-    (state.basket||[]).forEach(i=>{const q=document.getElementById('qty_'+i.basketItemId);const p=document.getElementById('price_'+i.basketItemId);if(q)i.qty=qnum(q.value,i.unit);if(p)i.unitPrice=Math.max(0,rawNumber(p.value));i.sum=Math.round((rawNumber(i.qty)*rawNumber(i.unitPrice)+Number.EPSILON)*100)/100;});
+    if(!isPhoneMode()){
+      (state.basket||[]).forEach(i=>{const q=document.getElementById('qty_'+i.basketItemId);const p=document.getElementById('price_'+i.basketItemId);if(q)i.qty=qnum(q.value,i.unit);if(p)i.unitPrice=Math.max(0,rawNumber(p.value));i.sum=Math.round((rawNumber(i.qty)*rawNumber(i.unitPrice)+Number.EPSILON)*100)/100;});
+    }
     return [...(state.basket||[]),...(state.basketRemoved||[])].map(i=>({basketItemId:i.basketItemId||'',productId:i.productId||'',qty:i.qty,price:i.unitPrice,status:i.status||'активно',source:i.source||'вручную'}));
   }
 
