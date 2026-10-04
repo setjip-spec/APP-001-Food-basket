@@ -63,8 +63,17 @@
 
 
   function renderStats(){
-    const s=state.summary;const shortage=s.shortageProducts>0;
-    const d=basketDraftSummary();const items=[['Нужно докупить',s.shortageProducts,'товаров',shortage],['В корзине',(state.basket||[]).length,'позиций',false],['Стоимость',money(d.total),'',false],['Кэшбэк',money(d.cashback),'',false]];
+    const s=state.summary||{},shortage=rawNumber(s.shortageProducts)>0;
+    const shortageCount=rawNumber(s.shortageProducts);
+    const pricedCount=rawNumber(s.shortagePricedProducts);
+    const purchaseCost=rawNumber(s.shortageCost);
+    const purchaseSub=shortageCount===0?'товаров':(pricedCount>=shortageCount?'на все товары':pricedCount+' из '+shortageCount+' товаров с ценой');
+    const items=[
+      ['Нужно докупить',shortageCount,'товаров',shortage],
+      ['Сумма к покупке',money(purchaseCost),purchaseSub,false],
+      ['Общие покупки',money(rawNumber(s.historicalSpend)),'вся история',false],
+      ['Сэкономленный кэшбэк',money(rawNumber(s.historicalCashback)),'вся история',false]
+    ];
     document.getElementById('stats').innerHTML=items.map(x=>`<div class="stat ${x[3]?'alert':''}"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div>${x[2]?`<div class="stat-sub">${x[2]}</div>`:''}</div>`).join('');
   }
   function formatMixedQty(v){return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(Number(v)||0)}
