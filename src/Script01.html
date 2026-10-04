@@ -76,12 +76,16 @@
     const historicalCashback=s.historicalCashback==null
       ?Math.round(((state.purchases||[]).reduce((sum,p)=>sum+rawNumber(p.actualCashback),0)+Number.EPSILON)*100)/100
       :rawNumber(s.historicalCashback);
+    const historicalCashbackRate=s.historicalCashbackRate==null
+      ?(historicalSpend>0?Math.round(((historicalCashback/historicalSpend*100)+Number.EPSILON)*10)/10:0)
+      :rawNumber(s.historicalCashbackRate);
     const purchaseSub=shortageCount===0?'товаров':(pricedCount>=shortageCount?'на все товары':pricedCount+' из '+shortageCount+' товаров с ценой');
     const items=[
       ['Нужно докупить',shortageCount,'товаров',shortage],
       ['Сумма к покупке',money(purchaseCost),purchaseSub,false],
       ['Общие покупки',money(historicalSpend),'вся история',false],
-      ['Сэкономленный кэшбэк',money(historicalCashback),'вся история',false]
+      ['Сэкономленный кэшбэк',money(historicalCashback),'вся история',false],
+      ['Средний кэшбэк',new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(historicalCashbackRate)+'%','от общей суммы покупок',false]
     ];
     document.getElementById('stats').innerHTML=items.map(x=>`<div class="stat ${x[3]?'alert':''}"><div class="stat-label">${x[0]}</div><div class="stat-value">${x[1]}</div>${x[2]?`<div class="stat-sub">${x[2]}</div>`:''}</div>`).join('');
   }
